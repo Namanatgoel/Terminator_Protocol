@@ -1,0 +1,13 @@
+name: terminator_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11  # user running
+  - psycopg2  # user running
+  - fastapi  # user running
+  - uvicorn  # user running
+  - pydantic  # user running
+  - pip:
+    - openai  # user running
+    - confluent-kafka  # user running
