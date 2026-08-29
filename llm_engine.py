@@ -1,6 +1,8 @@
 import os
 import json
 import warnings
+import time
+from pydantic import BaseModel, Field, ValidationError
 from openai import OpenAI
 
 try:
@@ -9,6 +11,12 @@ try:
         warnings.warn("Hardware Acceleration (RTX 5050) not available. Falling back to CPU.", RuntimeWarning)
 except ImportError:
     warnings.warn("Torch not installed, unable to verify hardware acceleration.", RuntimeWarning)
+
+class ActionDecision(BaseModel):
+    action: str = Field(default="silent_retry")
+    delay_minutes: int = Field(default=60)
+    updated_context: str = Field(default="")
+    offer_authorized: bool = Field(default=False)
 
 class LLMRouter:
     def __init__(self, base_url=None, api_key=None):
@@ -31,20 +39,17 @@ class LLMRouter:
             "- offer_authorized (bool): True if discount is authorized"
         )
 
-    def route_transaction(self, txn_id, error_code, amount, tier, context):
+    def route_transaction(self, txn_id, error_code, amount, tier, context) -> ActionDecision:
         prompt = f"Txn: {txn_id} | Amount: {amount} | Error: {error_code} | Tier: {tier} | Context: {context}"
-        try:
-            response = self.client.chat.completions.create(
-                model="Qwen/Qwen2.5-7B-Instruct-AWQ",
-                messages=[{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}],
-                temperature=0.0,
-                response_format={"type": "json_object"}
-            )
-            return json.loads(response.choices[0].message.content)
-        except Exception as e:
-            return {
-                "action": "silent_retry",
-                "delay_minutes": 60,
-                "updated_context": f"{context} [LLM Parse Error or Disconnected]",
-                "offer_authorized": False
-            }
+        for attempt in range(3):
+            try:
+                response = self.client.chat.completions.create(
+                    model="Qwen/Qwen2.5-7B-Instruct-AWQ",
+                    messages=[{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}],
+                    temperature=0.0,
+                    response_format={"type": "json_object"}
+                )
+                return ActionDecision(**json.loads(response.choices[0].message.content))
+            except (Exception, ValidationError):
+                if attempt < 2: time.sleep(1)
+                else: return ActionDecision(action="silent_retry", delay_minutes=60, updated_context=f"{context} [LLM/Parse Error]", offer_authorized=False)
