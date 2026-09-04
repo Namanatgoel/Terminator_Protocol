@@ -5,7 +5,7 @@ import os
 class DatabaseRepository:
     """
     Technical Debt: Using SQLite for local demonstration.
-    Upgrade path: PostgreSQL for production-grade FOR UPDATE SKIP LOCKED.
+    Upgrade path: PostgreSQL with FOR UPDATE SKIP LOCKED for production-grade concurrency.
     """
     def __init__(self, db_path=None):
         self.db_path = db_path or os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "terminator.db"))
@@ -25,8 +25,15 @@ class DatabaseRepository:
                     escalation_tier INTEGER DEFAULT 1, agent_context TEXT DEFAULT ''
                 );
                 CREATE TABLE IF NOT EXISTS audit_logs (
-                    log_id TEXT PRIMARY KEY, txn_id TEXT, action_taken TEXT, outcome TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(txn_id) REFERENCES failed_transactions(txn_id)
+                    log_id TEXT PRIMARY KEY,
+                    txn_id TEXT,
+                    amount REAL,
+                    action_taken TEXT,
+                    outcome TEXT,
+                    ai_reasoning TEXT,
+                    offer_authorized INTEGER DEFAULT 0,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(txn_id) REFERENCES failed_transactions(txn_id)
                 );
             """)
 
@@ -42,11 +49,32 @@ class DatabaseRepository:
 
     def update_transaction(self, txn_id, status, retry_count, tier, context):
         with self.get_connection() as conn:
-            conn.execute("UPDATE failed_transactions SET status=?, retry_count=?, escalation_tier=?, agent_context=? WHERE txn_id=?", 
-                         (status, retry_count, tier, context, txn_id))
+            conn.execute(
+                "UPDATE failed_transactions SET status=?, retry_count=?, escalation_tier=?, agent_context=? WHERE txn_id=?",
+                (status, retry_count, tier, context, txn_id)
+            )
 
-    def log_audit(self, txn_id, action, outcome):
+    def log_audit(self, txn_id, amount, action, outcome, ai_reasoning="", offer_authorized=False):
         with self.get_connection() as conn:
-            conn.execute("INSERT INTO audit_logs (log_id, txn_id, action_taken, outcome) VALUES (?, ?, ?, ?)", 
-                         (str(uuid.uuid4()), txn_id, action, outcome))
+            conn.execute(
+                "INSERT INTO audit_logs (log_id, txn_id, amount, action_taken, outcome, ai_reasoning, offer_authorized) VALUES (?,?,?,?,?,?,?)",
+                (str(uuid.uuid4()), txn_id, amount, action, outcome, ai_reasoning, int(offer_authorized))
+            )
+
+    def recovery_report(self) -> dict:
+        """Return ₹ recovered vs ₹ at-risk across the full batch."""
+        with self.get_connection() as conn:
+            total_at_risk = conn.execute("SELECT COALESCE(SUM(amount),0) FROM failed_transactions").fetchone()[0]
+            total_lost = conn.execute("SELECT COALESCE(SUM(amount),0) FROM failed_transactions WHERE status='hard_failed'").fetchone()[0]
+            total_in_flight = conn.execute("SELECT COALESCE(SUM(amount),0) FROM failed_transactions WHERE status IN ('pending','processing')").fetchone()[0]
+            actions = conn.execute("SELECT action_taken, COUNT(*) as cnt, COALESCE(SUM(amount),0) as vol FROM audit_logs GROUP BY action_taken").fetchall()
+        recovered = total_at_risk - total_lost - total_in_flight
+        return {
+            "total_at_risk": round(total_at_risk, 2),
+            "recovered": round(recovered, 2),
+            "lost": round(total_lost, 2),
+            "in_flight": round(total_in_flight, 2),
+            "recovery_rate_pct": round(100 * recovered / total_at_risk, 1) if total_at_risk else 0.0,
+            "actions": [{"action": r["action_taken"], "count": r["cnt"], "volume": round(r["vol"], 2)} for r in actions],
+        }
 

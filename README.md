@@ -19,9 +19,11 @@ The system is built on a highly modular, lean architecture utilizing only 5 core
 
 1. **`db.py`**: State machine, strict locking, and immutable audit logs.
 2. **`llm_engine.py`**: The GPU-accelerated routing brain. Uses prompt-engineering to dynamically authorize offers or fallback to standard retries based on prior agent context.
-3. **`queue.py`**: Redpanda/Kafka delay queue wrappers.
+3. **`message_queue.py`**: Redpanda/Kafka delay queue wrappers (lazy-init, ELK-ready logs).
 4. **`executor.py`**: The relentless state-machine loop orchestrator.
 5. **`test.py`**: Checkpoint validation for synthetic data and chaos testing.
+6. **`report.py`**: Recovery summary — ₹ recovered vs ₹ at-risk across the batch.
+7. **`dashboard/index.html`**: Deployable single-file dashboard (GitHub Pages compatible).
 
 > **Note on Local Execution:** 
 > For the purpose of immediate hackathon evaluation without requiring heavy OS-level services, the repository uses **SQLite** (acting as a local ceiling for development) instead of the originally planned PostgreSQL. Atomic locking is handled natively by SQLite's `BEGIN EXCLUSIVE` transactions to simulate `SKIP LOCKED` behavior.
@@ -54,7 +56,7 @@ python executor.py
 To extract the exact, immutable financial log of actions taken, outcomes, and LLM rationale:
 
 ```bash
-python -c "from test import export_audit_log; export_audit_log()"
+python -c "from test import export_audit_log; from db import DatabaseRepository; export_audit_log(DatabaseRepository())"
 ```
 This will generate `audit_export.csv` containing the complete trace.
 

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Terminator Protocol — Revenue Recovery Dashboard</title>
+<meta name="description" content="Real-time AI revenue recovery metrics for Razorpay Buildathon 2026"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d1117;--surface:#161b22;--surface2:#21262d;
+    --border:#30363d;--text:#e6edf3;--muted:#8b949e;
+    --green:#3fb950;--red:#f85149;--blue:#58a6ff;
+    --purple:#bc8cff;--orange:#ffa657;--pink:#ff7b72;
+  }
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem}
+  header{display:flex;align-items:center;gap:.75rem;margin-bottom:2rem}
+  header h1{font-size:1.5rem;font-weight:700;letter-spacing:-.02em}
+  .badge{background:#f85149;color:#fff;font-size:.7rem;font-weight:600;padding:.2rem .5rem;border-radius:4px;letter-spacing:.05em}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem}
+  .kpi label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:.5rem}
+  .kpi .value{font-size:2rem;font-weight:700;line-height:1}
+  .kpi .sub{font-size:.8rem;color:var(--muted);margin-top:.35rem}
+  .green{color:var(--green)} .red{color:var(--red)} .blue{color:var(--blue)}
+  .charts{display:grid;grid-template-columns:1fr 2fr;gap:1rem;margin-bottom:1.5rem}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem}
+  .card h2{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem}
+  canvas{max-height:260px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  thead th{text-align:left;color:var(--muted);font-weight:500;padding:.5rem .75rem;border-bottom:1px solid var(--border);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em}
+  tbody tr:hover{background:var(--surface2)}
+  tbody td{padding:.6rem .75rem;border-bottom:1px solid var(--border);vertical-align:top;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pill{display:inline-block;padding:.15rem .55rem;border-radius:999px;font-size:.72rem;font-weight:600}
+  .pill-retry{background:#1c3a5e;color:var(--blue)}
+  .pill-whatsapp{background:#1b3a2a;color:var(--green)}
+  .pill-voice{background:#3a2060;color:var(--purple)}
+  .pill-fomo{background:#3a1c1c;color:var(--red)}
+  .stopped{color:var(--muted);font-style:italic}
+  .upload-bar{display:flex;gap:.75rem;align-items:center;margin-bottom:1rem}
+  input[type=file]{display:none}
+  .btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.5rem 1rem;border-radius:8px;cursor:pointer;font-size:.82rem;font-family:inherit}
+  .btn:hover{background:var(--border)}
+  #filename{color:var(--muted);font-size:.8rem}
+  @media(max-width:700px){.charts{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <span style="font-size:1.5rem">⚡</span>
+  <h1>Terminator Protocol</h1>
+  <span class="badge">RAZORPAY BUILDATHON 2026</span>
+</header>
+
+<div class="upload-bar">
+  <label for="csvInput" class="btn">📂 Load audit_export.csv</label>
+  <input type="file" id="csvInput" accept=".csv"/>
+  <span id="filename">No file loaded — showing sample data</span>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><label>Total At Risk</label><div class="value blue" id="kpi-risk">—</div><div class="sub">across batch</div></div>
+  <div class="kpi"><label>Recovered</label><div class="value green" id="kpi-rec">—</div><div class="sub" id="kpi-pct">—</div></div>
+  <div class="kpi"><label>In Flight</label><div class="value" id="kpi-flight">—</div><div class="sub">still processing</div></div>
+  <div class="kpi"><label>Lost</label><div class="value red" id="kpi-lost">—</div><div class="sub">hard_failed</div></div>
+</div>
+
+<div class="charts">
+  <div class="card"><h2>Actions Distribution</h2><canvas id="donut"></canvas></div>
+  <div class="card"><h2>Recovery Volume by Action (₹)</h2><canvas id="bar"></canvas></div>
+</div>
+
+<div class="card">
+  <h2>Audit Log</h2>
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Timestamp</th><th>TXN ID</th><th>Action</th><th>Amount (₹)</th><th>AI Reasoning</th><th>Outcome</th></tr></thead>
+      <tbody id="log-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const INR = v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits:2});
+const PILL = {silent_retry:'pill-retry',whatsapp_ping:'pill-whatsapp',voice_call:'pill-voice',fomo_alert:'pill-fomo'};
+const COLORS = ['#58a6ff','#3fb950','#bc8cff','#ffa657','#ff7b72'];
+
+const SAMPLE = [
+  {timestamp:'2026-09-03 09:00:01',txn_id:'txn-001',action_taken:'silent_retry',amount:12500,ai_reasoning:'Card declined — first attempt, low risk',outcome:'Retry scheduled via Redpanda',offer_authorized:'0'},
+  {timestamp:'2026-09-03 09:00:03',txn_id:'txn-002',action_taken:'whatsapp_ping',amount:45000,ai_reasoning:'Checkout abandoned after cart fill',outcome:'Razorpay UPI deep-link sent',offer_authorized:'0'},
+  {timestamp:'2026-09-03 09:00:05',txn_id:'txn-003',action_taken:'voice_call',amount:28000,ai_reasoning:'User showed price sensitivity in prior context',outcome:'Retell AI webhook triggered — 10% EMI offer authorised',offer_authorized:'1'},
+  {timestamp:'2026-09-03 09:00:07',txn_id:'txn-004',action_taken:'fomo_alert',amount:8750,ai_reasoning:'All soft channels exhausted',outcome:'Terminal FOMO email/SMS dispatched',offer_authorized:'0'},
+  {timestamp:'2026-09-03 09:00:09',txn_id:'txn-005',action_taken:'silent_retry',amount:3200,ai_reasoning:'Insufficient funds — payday likely end of month',outcome:'Retry scheduled via Redpanda',offer_authorized:'0'},
+];
+
+let donutChart, barChart;
+
+function buildCharts(rows){
+  const tally = {}, vol = {};
+  rows.forEach(r=>{
+    tally[r.action_taken] = (tally[r.action_taken]||0)+1;
+    vol[r.action_taken] = (vol[r.action_taken]||0)+parseFloat(r.amount||0);
+  });
+  const labels = Object.keys(tally), counts = labels.map(l=>tally[l]), volumes = labels.map(l=>vol[l]);
+
+  if(donutChart) donutChart.destroy();
+  donutChart = new Chart(document.getElementById('donut'),{type:'doughnut',data:{labels,datasets:[{data:counts,backgroundColor:COLORS,borderWidth:0,hoverOffset:6}]},options:{plugins:{legend:{position:'bottom',labels:{color:'#8b949e',boxWidth:12}}},cutout:'68%'}});
+
+  if(barChart) barChart.destroy();
+  barChart = new Chart(document.getElementById('bar'),{type:'bar',data:{labels,datasets:[{label:'Volume (₹)',data:volumes,backgroundColor:COLORS,borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e',callback:v=>'₹'+v.toLocaleString('en-IN')},grid:{color:'#21262d'}}}}});
+}
+
+function buildKPIs(rows, extra){
+  const total = rows.reduce((s,r)=>s+parseFloat(r.amount||0),0);
+  const lost = extra?.lost||0, flight = extra?.in_flight||0;
+  const rec = total - lost - flight;
+  document.getElementById('kpi-risk').textContent = INR(total);
+  document.getElementById('kpi-rec').textContent = INR(Math.max(0,rec));
+  document.getElementById('kpi-pct').textContent = total ? (100*Math.max(0,rec)/total).toFixed(1)+'% recovery rate' : '';
+  document.getElementById('kpi-flight').textContent = INR(flight);
+  document.getElementById('kpi-lost').textContent = INR(lost);
+}
+
+function buildTable(rows){
+  const body = document.getElementById('log-body');
+  body.innerHTML = rows.slice(0,200).map(r=>`<tr>
+    <td>${r.timestamp||''}</td>
+    <td title="${r.txn_id}">${(r.txn_id||'').substring(0,12)}…</td>
+    <td><span class="pill ${PILL[r.action_taken]||''}">${r.action_taken||''}</span></td>
+    <td>${INR(r.amount||0)}</td>
+    <td title="${r.ai_reasoning||''}">${(r.ai_reasoning||'').substring(0,60)}${(r.ai_reasoning||'').length>60?'…':''}</td>
+    <td>${r.outcome||''}</td>
+  </tr>`).join('');
+}
+
+function render(rows, extra){
+  buildKPIs(rows, extra);
+  buildCharts(rows);
+  buildTable(rows);
+}
+
+document.getElementById('csvInput').addEventListener('change', e=>{
+  const file = e.target.files[0]; if(!file) return;
+  document.getElementById('filename').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const lines = ev.target.result.trim().split('\n');
+    const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+    const rows = lines.slice(1).map(l=>{
+      const vals = l.split(',');
+      return Object.fromEntries(headers.map((h,i)=>[h,(vals[i]||'').trim().replace(/^"|"$/g,'')]));
+    });
+    render(rows, null);
+  };
+  reader.readAsText(file);
+});
+
+// Boot with sample data
+render(SAMPLE, {lost:8750, in_flight:15700});
+</script>
+</body>
+</html>

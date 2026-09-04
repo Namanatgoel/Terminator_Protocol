@@ -1,13 +1,13 @@
-name: terminator_env
+name: RzpyBuild
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.11  # user running
-  - psycopg2  # user running
-  - fastapi  # user running
-  - uvicorn  # user running
-  - pydantic  # user running
+  - python=3.11        # user running
+  - fastapi            # user running
+  - uvicorn            # user running
+  - pydantic>=2.0,<3   # user running — v2 required for Literal field validation
   - pip:
-    - openai  # user running
+    - openai           # user running
     - confluent-kafka  # user running
+

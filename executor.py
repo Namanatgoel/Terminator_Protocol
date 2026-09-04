@@ -5,12 +5,17 @@ from db import DatabaseRepository
 from llm_engine import LLMRouter
 from message_queue import MessageQueue
 
-# Structured JSON logging for Datadog/ELK ingestion
 logger = logging.getLogger("executor")
 logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter('{"timestamp": "%(asctime)s", "level": "%(levelname)s", "message": %(message)s}'))
-logger.addHandler(handler)
+_handler = logging.StreamHandler()
+_handler.setFormatter(logging.Formatter('{"ts":"%(asctime)s","lvl":"%(levelname)s","msg":%(message)s}'))
+logger.addHandler(_handler)
+
+_ACTION_OUTCOMES = {
+    "silent_retry": "Retry scheduled via Redpanda",
+    "whatsapp_ping": "Razorpay UPI deep-link sent via WhatsApp",
+    "fomo_alert": "Terminal FOMO email/SMS dispatched",
+}
 
 class ExecutorService:
     def __init__(self, db: DatabaseRepository, llm: LLMRouter, mq: MessageQueue):
@@ -18,17 +23,23 @@ class ExecutorService:
         self.llm = llm
         self.mq = mq
 
-    def execute_tier_action(self, txn_id, action, context, offer_authorized):
-        # Technical Debt: Bounded mock execution. 
-        # Upgrade path: Integrate with Razorpay/Retell APIs.
-        outcomes = {
-            "silent_retry": "Retry Scheduled via Redpanda",
-            "whatsapp_ping": "Sent Razorpay UPI Deep Link via WhatsApp",
-            "fomo_alert": "Terminal FOMO Email/SMS Sent",
-            "voice_call": "Retell AI Webhook Triggered with 10% EMI Offer" if offer_authorized else "Retell AI Webhook Triggered (Standard Negotiation)"
-        }
-        outcome = outcomes.get(action, "Unknown Action Triggered")
-        self.db.log_audit(txn_id, action, outcome)
+    def _execute_action(self, txn_id: str, amount: float, decision) -> str:
+        # Technical Debt: Mock execution stubs.
+        # Upgrade path: Razorpay Payments API, Twilio WhatsApp, Retell AI webhooks.
+        if decision.action == "voice_call":
+            outcome = ("Retell AI webhook triggered — 10% EMI offer authorised"
+                       if decision.offer_authorized
+                       else "Retell AI webhook triggered — standard negotiation")
+        else:
+            outcome = _ACTION_OUTCOMES.get(decision.action, "Unknown action")
+        self.db.log_audit(
+            txn_id=txn_id,
+            amount=amount,
+            action=decision.action,
+            outcome=outcome,
+            ai_reasoning=decision.updated_context,
+            offer_authorized=decision.offer_authorized,
+        )
         return outcome
 
     def process_loop(self):
@@ -36,24 +47,34 @@ class ExecutorService:
         while True:
             records = self.db.fetch_and_lock_pending(limit=5)
             for rec in records:
-                txn_id, tier, context = rec['txn_id'], rec['escalation_tier'], rec['agent_context']
-                
-                decision = self.llm.route_transaction(txn_id, rec['error_code'], rec['amount'], tier, context)
-                self.execute_tier_action(txn_id, decision.action, decision.updated_context, decision.offer_authorized)
-                
-                next_tier = tier + 1
-                
-                # TechDebt (Outbox Pattern): Pushing to queue before DB update ensures we don't drop tasks, but may cause duplicates.
-                if next_tier <= 4:
-                    self.mq.enqueue(txn_id, next_tier, decision.updated_context, time.time() + (decision.delay_minutes * 60))
-                self.db.update_transaction(txn_id, "hard_failed" if next_tier > 4 else "pending", rec['retry_count'] + 1, next_tier, decision.updated_context)
-                
-                logger.info(json.dumps({"event": "transaction_processed", "txn_id": txn_id, "action": decision.action, "next_tier": next_tier}))
-            
+                txn_id = rec["txn_id"]
+                tier = rec["escalation_tier"]
+                amount = rec["amount"]
+                context = rec["agent_context"]
+
+                decision = self.llm.route_transaction(txn_id, rec["error_code"], amount, tier, context)
+                self._execute_action(txn_id, amount, decision)
+
+                # Only advance escalation tier when the LLM gave a real decision,
+                # not when it fell back due to a transient network error.
+                next_tier = tier + (0 if decision.is_fallback else 1)
+                final_status = "hard_failed" if next_tier > 4 else "pending"
+
+                if next_tier <= 4 and not decision.is_fallback:
+                    self.mq.enqueue(txn_id, next_tier, decision.updated_context, time.time() + decision.delay_minutes * 60)
+                self.db.update_transaction(txn_id, final_status, rec["retry_count"] + 1, next_tier, decision.updated_context)
+
+                logger.info(json.dumps({
+                    "event": "txn_processed", "txn_id": txn_id,
+                    "action": decision.action, "next_tier": next_tier,
+                    "is_fallback": decision.is_fallback, "amount": amount,
+                }))
+
             if not records:
-                logger.info(json.dumps({"event": "executor_idle"}))
+                logger.info(json.dumps({"event": "executor_idle_batch_complete"}))
                 break
             time.sleep(2)
 
 if __name__ == "__main__":
     ExecutorService(DatabaseRepository(), LLMRouter(), MessageQueue()).process_loop()
+
