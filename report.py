@@ -2,7 +2,6 @@
 report.py — Recovery summary for the Terminator Protocol batch.
 Usage: python report.py
 """
-import json
 import logging
 from db import DatabaseRepository
 

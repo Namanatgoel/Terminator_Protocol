@@ -3,7 +3,7 @@ import json
 import warnings
 import time
 from typing import Literal
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError
 from openai import OpenAI
 
 try:
@@ -13,7 +13,6 @@ try:
 except ImportError:
     warnings.warn("Torch not installed, unable to verify hardware acceleration.", RuntimeWarning)
 
-_VALID_ACTIONS = {"silent_retry", "whatsapp_ping", "voice_call", "fomo_alert"}
 
 class ActionDecision(BaseModel):
     action: Literal["silent_retry", "whatsapp_ping", "voice_call", "fomo_alert"] = "silent_retry"
