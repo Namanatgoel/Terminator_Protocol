@@ -30,12 +30,12 @@ Seven modules, each with a single responsibility:
 
 | File | Responsibility |
 |------|---------------|
-| `db.py` | `DatabaseRepository` - state machine, atomic batch locking, audit log, recovery metrics |
-| `llm_engine.py` | `LLMRouter` + `ActionDecision` - GPU-accelerated routing with Pydantic validation and 3-retry resilience |
-| `message_queue.py` | `MessageQueue` - Redpanda/Kafka delay queue with lazy producer init and structured error logging |
-| `executor.py` | `ExecutorService` - orchestration loop with dependency injection and JSON-structured logs |
-| `test.py` | Synthetic data seeder and audit log exporter |
-| `report.py` | CLI recovery summary (₹ recovered vs ₹ at-risk) |
+| `src/db.py` | `DatabaseRepository` - state machine, atomic batch locking, audit log, recovery metrics |
+| `src/llm_engine.py` | `LLMRouter` + `ActionDecision` - GPU-accelerated routing with Pydantic validation and 3-retry resilience |
+| `src/message_queue.py` | `MessageQueue` - Redpanda/Kafka delay queue with lazy producer init and structured error logging |
+| `src/executor.py` | `ExecutorService` - orchestration loop with dependency injection and JSON-structured logs |
+| `src/test.py` | Synthetic data seeder and audit log exporter |
+| `src/report.py` | CLI recovery summary (₹ recovered vs ₹ at-risk) |
 | `dashboard/index.html` | Standalone browser dashboard - load `audit_export.csv` to see live metrics |
 
 **Local execution note:** SQLite replaces PostgreSQL for zero-dependency local evaluation. `BEGIN EXCLUSIVE` transactions simulate `FOR UPDATE SKIP LOCKED`. The upgrade path to PostgreSQL is documented in `db.py`.
@@ -58,6 +58,7 @@ conda activate RzpyBuild
 ### 2. Seed the database
 
 ```bash
+cd src
 python test.py
 ```
 
