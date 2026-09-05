@@ -1,5 +1,5 @@
 """
-report.py — Recovery summary for the Terminator Protocol batch.
+report.py - Recovery summary for the Terminator Protocol batch.
 Usage: python report.py
 """
 import logging
@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 def recovery_report(db: DatabaseRepository) -> dict:
     report = db.recovery_report()
     print("\n" + "═" * 52)
-    print("  TERMINATOR PROTOCOL — RECOVERY REPORT")
+    print("  TERMINATOR PROTOCOL - RECOVERY REPORT")
     print("═" * 52)
     print(f"  Total at-risk :  ₹{report['total_at_risk']:>12,.2f}")
     print(f"  Recovered      :  ₹{report['recovered']:>12,.2f}  ({report['recovery_rate_pct']}%)")

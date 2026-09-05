@@ -26,7 +26,7 @@ class ActionDecision(BaseModel):
         return cls(
             action="silent_retry",
             delay_minutes=60,
-            updated_context=f"{context} [LLM/Parse Error — conservative fallback]",
+            updated_context=f"{context} [LLM/Parse Error - conservative fallback]",
             offer_authorized=False,
             is_fallback=True,
         )

@@ -27,9 +27,9 @@ class ExecutorService:
         # Technical Debt: Mock execution stubs.
         # Upgrade path: Razorpay Payments API, Twilio WhatsApp, Retell AI webhooks.
         if decision.action == "voice_call":
-            outcome = ("Retell AI webhook triggered — 10% EMI offer authorised"
+            outcome = ("Retell AI webhook triggered - 10% EMI offer authorised"
                        if decision.offer_authorized
-                       else "Retell AI webhook triggered — standard negotiation")
+                       else "Retell AI webhook triggered - standard negotiation")
         else:
             outcome = _ACTION_OUTCOMES.get(decision.action, "Unknown action")
         self.db.log_audit(
