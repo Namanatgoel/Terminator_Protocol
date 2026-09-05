@@ -1,13 +1,13 @@
 # Terminator Protocol - 5-Minute Video Script
 **Razorpay Buildathon 2026 | Track 03: AI Revenue Recovery**
 
-> **Recording note:** Screen-record `dashboard/index.html` in Chrome. Each section maps to a nav link at the top. The dashboard is completely static and clean, aligned with Razorpay design standards.
+> **Recording note:** Screen-record `dashboard/index.html` in Chrome. Each section matches the navigation flow on the page. The dashboard is completely static and clean, aligned with Razorpay design standards.
 
 ---
 
 ## [0:00 – 0:30] Hook - The Problem
 
-*[Screen: `dashboard/index.html` hero section - showing clean overview metrics and track details.]*
+*[Screen: `dashboard/index.html` hero section - Overview]*
 
 **Narration:**
 "Every second, payments fail. Cards decline. Checkouts get abandoned mid-flow. Subscriptions lapse.
@@ -23,112 +23,75 @@ The question we asked was: what if an AI agent could close the entire loop - det
 
 ## [0:30 – 1:30] The Architecture - What It Is
 
-*[Click 'Architecture' in the nav - showing the clean, static modular layout list.]*
+*[Scroll to or click 'Architecture' in the nav]*
 
 **Narration:**
-"Seven Python modules, each with a single responsibility.
+"The system is built on four core Python modules, each with a strict single responsibility.
 
-**The Database layer.** Every failed transaction enters as `pending`. The executor locks a batch atomically - `BEGIN EXCLUSIVE` simulating Postgres's `FOR UPDATE SKIP LOCKED` - and sets them to `processing`. No double execution.
+**db.py**: The database layer. Every failed transaction enters as `pending`. The executor locks batches atomically using SQLite's `BEGIN EXCLUSIVE`, ensuring zero double-execution.
 
-**The LLM Router.** This is the brain. We run Qwen-2.5-7B locally via vLLM on the RTX 5050 - GPU-accelerated, deterministic at temperature zero. The model outputs an `ActionDecision` - a Pydantic model with a `Literal` type constraint. If the LLM hallucinates an action string, Pydantic rejects it at parse time and the retry loop fires.
+**llm_engine.py**: The brain. We run Qwen-2.5-7B locally, GPU-accelerated. The model outputs a routing decision using Pydantic `Literal` constraints. If the LLM hallucinates an invalid action, Pydantic rejects it instantly.
 
-**The Executor.** Fetches batches, calls the router, executes the action, logs the audit entry - amount, AI reasoning, offer authorised. Structured JSON to stdout, Datadog-ready.
+**executor.py**: The orchestration loop. It fetches batches, calls the AI router, executes the action, and logs the outcome as structured JSON.
 
-**The Message Queue.** Redpanda backs the delay queue. Escalation is enqueued *before* the DB commit - an outbox pattern that prevents silent data loss on crash.
-
-**The Recovery Report.** One command: ₹ recovered vs ₹ at-risk across the full batch."
+**message_queue.py**: Backs the delay queue. We use an outbox pattern where escalation events are enqueued *before* the database commit to prevent silent data loss on crashes."
 
 ---
 
 ## [1:30 – 2:30] The Four Tiers - AI Judgment
 
-*[Click 'Escalation' in the nav - showing the four tier cards.]*
+*[Scroll to or click 'Escalation' in the nav]*
 
 **Narration:**
 "The agent escalates through four tiers. This is where AI judgment matters most.
 
-**Tier 1 - Silent Retry.** The LLM detects a transient failure: insufficient funds, a network blip. It schedules a quiet Redpanda retry. No customer contact. No friction.
+**Tier 1 - Silent Retry.** The LLM detects a transient failure: insufficient funds, a network blip. It schedules a quiet retry. No customer contact. No friction.
 
 **Tier 2 - WhatsApp Ping.** Repeat failure signals an addressable user. A Razorpay UPI deep-link fires via WhatsApp. One tap to complete payment.
 
 **Tier 3 - Voice Negotiation.** The LLM reads accumulated context. If price sensitivity was flagged in prior interactions - the user hesitated, mentioned EMI - the model authorises a 10% discount and triggers a Retell AI voice call. The AI negotiates on Razorpay's behalf, in real time.
 
-**Tier 4 - Terminal FOMO.** Last chance. An urgency-framed email and SMS hit simultaneously. After this, the transaction is marked `hard_failed` and counted as lost in the recovery report."
+**Tier 4 - Terminal Alert.** Last chance. An urgency-framed email and SMS hit simultaneously. After this, the transaction is marked `hard_failed` and counted as lost revenue."
 
 ---
 
-## [2:30 – 3:30] Live Demo - Terminal
+## [2:30 – 3:30] The Dashboard & Audit Log
 
-*[Click 'Action Feed' in the nav - the feed section. Execution feed events load in with structured details.]*
+*[Scroll to or click 'Dashboard' in the nav]*
 
 **Narration:**
-"Let me show you this running.
+"The dashboard is a single HTML file - no server, no build step, works on GitHub Pages. Drop in your `audit_export.csv` and it renders live KPIs: total at-risk, recovered, in-flight, and lost."
 
-`cd src` and `python test.py` seeds 50 synthetic failed transactions into the database."
+*[Hover over the Action Breakdown donut chart and Volume bar chart.]*
 
-*[Show terminal output: `INFO:test:Seeded 50 synthetic failed transactions.`]*
+"The charts break down recovery volume by action type. Silent retry catches the most volume, but voice negotiation recovers the highest-value transactions."
 
-"Now the executor. Every event emits a JSON log line - txn_id, action taken, next tier, amount at risk, and whether this was a real LLM decision or a safe fallback."
+*[Scroll down to the Audit Log table in the Dashboard section.]*
 
-*[Point at the log line with `is_fallback: true` - triggered when Kafka was unreachable.]*
-
-"Notice this line - `is_fallback: true`. The network was partitioned. The system did not advance the escalation tier. It did not burn recovery budget. The transaction stays at Tier 1 and will be picked up on the next batch. Zero revenue incorrectly marked lost."
-
-*[Switch to terminal, run:]*
-```
-python report.py
-```
-
-```
-════════════════════════════════════════════════════
-  TERMINATOR PROTOCOL - RECOVERY REPORT
-════════════════════════════════════════════════════
-  Total at-risk :  ₹12,45,300.00
-  Recovered      :   ₹8,91,200.00  (71.6%)
-  In-flight      :   ₹1,72,000.00
-  Lost           :   ₹1,82,100.00
-════════════════════════════════════════════════════
-```
-
-"71.6% recovery rate. That is measured money recovered."
+"Every decision the model made is traceable. Scroll the audit log and you see the exact AI reasoning produced for that decision, and whether an offer was authorised. Every rupee has an accountable rationale."
 
 ---
 
-## [3:30 – 4:15] The Dashboard
+## [3:30 – 4:15] Execution Feed & Postmortem
 
-*[Click 'Dashboard' in the nav - scroll to the KPI cards, donut chart, and bar chart.]*
+*[Scroll to or click 'Action Feed' in the nav]*
 
 **Narration:**
-"The dashboard is a single HTML file - no server, no build step, works on GitHub Pages.
+"Under the hood, the orchestrator emits real-time structured event logs."
 
-Drop in your `audit_export.csv` and it renders four live KPIs: total at-risk, recovered, in-flight, and hard-failed."
+*[Point to the warning log line: `Fallback Triggered`]*
 
-*[Hover over the donut chart - segments highlight. Point at the bar chart.]*
+"We designed for failure. Notice this warning line - `Fallback Triggered`. If the network partitions or Kafka goes down, the system does not advance the escalation tier. It executes a safe fallback. No revenue is incorrectly marked lost due to an infrastructure blip."
 
-"The bar chart shows recovery volume by action type - so you can see exactly how much revenue each channel recovered. Silent retry caught the most volume. Voice negotiation recovered the highest-value transactions.
+*[Briefly mention the postmortem]*
 
-Scroll the audit log. Every row has the action, the amount, whether a discount was authorised, and the exact AI reasoning the model produced for that decision. Every rupee has an accountable rationale."
-
----
-
-## [4:15 – 4:50] What We Got Wrong - Honesty
-
-*[Open `POSTMORTEM.md` in a text editor or show `dashboard/index.html` Action Feed section with the fallback event visible.]*
-
-**Narration:**
-"We shipped bugs. Here's the honest accounting.
-
-The biggest: a silent data loss bug. We dropped the `conn.commit()` call during a refactor. The seeder printed 'success'. The database was empty. We caught it by querying the DB directly - not by trusting the log message. Fix was one line.
-
-The second: `queue.py` shadowed Python's stdlib `queue` module. It broke the entire Torch import chain - CUDA detection failed silently. Renaming to `message_queue.py` fixed it.
-
-The third: network failures were burning escalation tiers. A connectivity blip would mark a transaction `hard_failed` in four retries - incorrectly. We added an `is_fallback: bool` field to `ActionDecision`. The executor now skips tier advancement on pure error paths. You saw this in the log replay - the line with `is_fallback: true`."
+"We shipped bugs along the way - a silent data loss bug during refactoring, and a standard library shadowing issue that broke Torch. We documented all of this in our Postmortem. Honesty in engineering."
 
 ---
 
-## [4:50 – 5:00] Close
+## [4:15 – 5:00] Close
 
-*[Return to hero section - showing the final overview stats.]*
+*[Scroll back to the top hero section]*
 
 **Narration:**
 "The Terminator Protocol detects revenue at risk. Diagnoses the failure. Picks the right intervention. Executes it. Measures what came back.
@@ -136,4 +99,3 @@ The third: network failures were burning escalation tiers. A connectivity blip w
 That's the bar. We hit it."
 
 *[Fade to black - 'Razorpay Buildathon 2026' title card.]*
-
