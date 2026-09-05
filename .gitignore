@@ -1,3 +1,4 @@
 **/__pycache__/
 *.db
 audit_export.csv
+VIDEO_SCRIPT.md
