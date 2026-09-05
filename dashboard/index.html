@@ -3,162 +3,605 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Terminator Protocol — Revenue Recovery Dashboard</title>
-<meta name="description" content="Real-time AI revenue recovery metrics for Razorpay Buildathon 2026"/>
+<title>Terminator Protocol — AI Revenue Recovery</title>
+<meta name="description" content="AI-driven payment recovery engine — Razorpay Buildathon 2026"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --bg:#0d1117;--surface:#161b22;--surface2:#21262d;
-    --border:#30363d;--text:#e6edf3;--muted:#8b949e;
-    --green:#3fb950;--red:#f85149;--blue:#58a6ff;
-    --purple:#bc8cff;--orange:#ffa657;--pink:#ff7b72;
-  }
-  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem}
-  header{display:flex;align-items:center;gap:.75rem;margin-bottom:2rem}
-  header h1{font-size:1.5rem;font-weight:700;letter-spacing:-.02em}
-  .badge{background:#f85149;color:#fff;font-size:.7rem;font-weight:600;padding:.2rem .5rem;border-radius:4px;letter-spacing:.05em}
-  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem}
-  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem}
-  .kpi label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:.5rem}
-  .kpi .value{font-size:2rem;font-weight:700;line-height:1}
-  .kpi .sub{font-size:.8rem;color:var(--muted);margin-top:.35rem}
-  .green{color:var(--green)} .red{color:var(--red)} .blue{color:var(--blue)}
-  .charts{display:grid;grid-template-columns:1fr 2fr;gap:1rem;margin-bottom:1.5rem}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem}
-  .card h2{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem}
-  canvas{max-height:260px}
-  table{width:100%;border-collapse:collapse;font-size:.82rem}
-  thead th{text-align:left;color:var(--muted);font-weight:500;padding:.5rem .75rem;border-bottom:1px solid var(--border);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em}
-  tbody tr:hover{background:var(--surface2)}
-  tbody td{padding:.6rem .75rem;border-bottom:1px solid var(--border);vertical-align:top;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pill{display:inline-block;padding:.15rem .55rem;border-radius:999px;font-size:.72rem;font-weight:600}
-  .pill-retry{background:#1c3a5e;color:var(--blue)}
-  .pill-whatsapp{background:#1b3a2a;color:var(--green)}
-  .pill-voice{background:#3a2060;color:var(--purple)}
-  .pill-fomo{background:#3a1c1c;color:var(--red)}
-  .stopped{color:var(--muted);font-style:italic}
-  .upload-bar{display:flex;gap:.75rem;align-items:center;margin-bottom:1rem}
-  input[type=file]{display:none}
-  .btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.5rem 1rem;border-radius:8px;cursor:pointer;font-size:.82rem;font-family:inherit}
-  .btn:hover{background:var(--border)}
-  #filename{color:var(--muted);font-size:.8rem}
-  @media(max-width:700px){.charts{grid-template-columns:1fr}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#090d12;--surface:#0f1419;--surface2:#161c24;--surface3:#1e2732;
+  --border:#252d38;--border2:#2e3a48;
+  --text:#e8edf5;--muted:#6b7a8d;--muted2:#8b9ab0;
+  --green:#2ea84e;--green2:#3fd663;--red:#e53935;--red2:#ff5252;
+  --blue:#1976d2;--blue2:#42a5f5;--purple:#7b1fa2;--purple2:#ce93d8;
+  --orange:#e65100;--orange2:#ffa726;--teal:#00695c;--teal2:#4db6ac;
+  --razorpay:#528ff0;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:.75rem 2rem;background:rgba(9,13,18,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:.6rem;font-weight:700;font-size:.95rem;letter-spacing:-.01em}
+.nav-logo .bolt{color:var(--razorpay);font-size:1.1rem}
+.nav-links{display:flex;gap:1.5rem}
+.nav-links a{color:var(--muted2);font-size:.82rem;text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-badge{background:var(--razorpay);color:#fff;font-size:.65rem;font-weight:700;padding:.2rem .6rem;border-radius:4px;letter-spacing:.06em}
+
+/* ── SECTIONS ── */
+section{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:6rem 2rem 4rem;position:relative}
+.container{max-width:1100px;width:100%;margin:0 auto}
+
+/* ── HERO ── */
+#hero{background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(82,143,240,.08) 0%, transparent 70%)}
+.hero-eyebrow{font-size:.72rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--razorpay);margin-bottom:1.25rem;opacity:0;animation:fadeUp .6s .1s forwards}
+.hero-title{font-size:clamp(2.2rem,5vw,4rem);font-weight:800;letter-spacing:-.03em;line-height:1.08;margin-bottom:1.5rem;opacity:0;animation:fadeUp .6s .2s forwards}
+.hero-title .accent{background:linear-gradient(135deg,var(--razorpay),var(--blue2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:1.05rem;color:var(--muted2);line-height:1.7;max-width:620px;margin-bottom:2.5rem;opacity:0;animation:fadeUp .6s .3s forwards}
+.hero-cta{display:flex;gap:1rem;flex-wrap:wrap;opacity:0;animation:fadeUp .6s .4s forwards}
+.btn-primary{background:var(--razorpay);color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-size:.88rem;font-weight:600;text-decoration:none;border:none;cursor:pointer;transition:background .2s,transform .15s}
+.btn-primary:hover{background:#3a7ee0;transform:translateY(-1px)}
+.btn-secondary{background:transparent;color:var(--text);padding:.65rem 1.4rem;border-radius:8px;font-size:.88rem;font-weight:500;text-decoration:none;border:1px solid var(--border2);cursor:pointer;transition:border-color .2s}
+.btn-secondary:hover{border-color:var(--muted2)}
+
+/* ── COUNTER STRIP ── */
+.counter-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:12px;overflow:hidden;margin-top:3rem;opacity:0;animation:fadeUp .6s .5s forwards}
+.counter-cell{background:var(--surface2);padding:1.25rem;text-align:center}
+.counter-cell .num{font-size:1.8rem;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.counter-cell .lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:.25rem}
+.fail-counter{color:var(--red2)}
+.recover-counter{color:var(--green2)}
+.amount-counter{color:var(--blue2)}
+
+/* ── SECTION TITLES ── */
+.section-label{font-size:.7rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--razorpay);margin-bottom:.75rem}
+.section-title{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;letter-spacing:-.025em;line-height:1.15;margin-bottom:.75rem}
+.section-sub{font-size:.97rem;color:var(--muted2);line-height:1.7;max-width:560px}
+
+/* ── ARCHITECTURE ── */
+#architecture{background:none}
+.arch-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;margin-top:3rem}
+.arch-modules{display:flex;flex-direction:column;gap:.75rem}
+.arch-module{display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;transition:border-color .3s,transform .3s;cursor:default;opacity:0;transform:translateX(-24px)}
+.arch-module.visible{animation:slideInLeft .5s forwards}
+.arch-module:hover{border-color:var(--razorpay);transform:translateX(4px)}
+.arch-module .icon{font-size:1.3rem;width:2.2rem;text-align:center;flex-shrink:0}
+.arch-module .mod-name{font-size:.85rem;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--blue2)}
+.arch-module .mod-desc{font-size:.78rem;color:var(--muted2);margin-top:.15rem}
+.arch-flow{display:flex;flex-direction:column;gap:.5rem;align-items:center}
+.flow-node{width:100%;max-width:300px;padding:.85rem 1.25rem;border-radius:10px;text-align:center;font-size:.82rem;font-weight:600;position:relative;opacity:0}
+.flow-arrow{font-size:.9rem;color:var(--muted);opacity:0;transition:opacity .3s}
+.flow-arrow.visible{opacity:1}
+.node-txn{background:rgba(82,143,240,.15);border:1px solid var(--razorpay);color:var(--blue2)}
+.node-llm{background:rgba(126,31,162,.15);border:1px solid var(--purple);color:var(--purple2)}
+.node-exec{background:rgba(0,105,92,.15);border:1px solid var(--teal);color:var(--teal2)}
+.node-queue{background:rgba(230,81,0,.15);border:1px solid var(--orange);color:var(--orange2)}
+.node-audit{background:rgba(46,168,78,.15);border:1px solid var(--green);color:var(--green2)}
+
+/* ── TIER LADDER ── */
+#tiers{background:radial-gradient(ellipse 60% 40% at 50% 50%, rgba(82,143,240,.04) 0%, transparent 70%)}
+.tier-ladder{display:flex;flex-direction:column;gap:0;margin-top:3rem;max-width:800px;margin-left:auto;margin-right:auto}
+.tier-item{display:grid;grid-template-columns:3rem 1fr;gap:1.5rem;align-items:stretch;opacity:0;transform:translateY(20px);transition:opacity .5s,transform .5s}
+.tier-item.visible{opacity:1;transform:translateY(0)}
+.tier-spine{display:flex;flex-direction:column;align-items:center}
+.tier-dot{width:2.5rem;height:2.5rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;flex-shrink:0;transition:transform .3s}
+.tier-item:hover .tier-dot{transform:scale(1.1)}
+.tier-line{width:2px;flex:1;margin:.25rem auto}
+.tier-content{padding:1.25rem 1.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:12px;margin-bottom:1rem;transition:border-color .3s}
+.tier-item:hover .tier-content{border-color:var(--border2)}
+.tier-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
+.tier-name{font-weight:700;font-size:.95rem}
+.tier-tag{font-size:.68rem;font-weight:600;padding:.2rem .55rem;border-radius:999px;letter-spacing:.05em}
+.tier-body{font-size:.84rem;color:var(--muted2);line-height:1.6}
+.tier-action{font-family:'JetBrains Mono',monospace;font-size:.75rem;margin-top:.6rem;padding:.35rem .65rem;border-radius:6px;display:inline-block;font-weight:500}
+
+.t1 .tier-dot{background:rgba(82,143,240,.2);color:var(--blue2);border:2px solid var(--blue2)}
+.t1 .tier-line{background:linear-gradient(var(--blue),var(--green))}
+.t1 .tier-tag{background:rgba(82,143,240,.15);color:var(--blue2)}
+.t1 .tier-action{background:rgba(82,143,240,.1);color:var(--blue2)}
+
+.t2 .tier-dot{background:rgba(46,168,78,.2);color:var(--green2);border:2px solid var(--green2)}
+.t2 .tier-line{background:linear-gradient(var(--green),var(--purple))}
+.t2 .tier-tag{background:rgba(46,168,78,.15);color:var(--green2)}
+.t2 .tier-action{background:rgba(46,168,78,.1);color:var(--green2)}
+
+.t3 .tier-dot{background:rgba(126,31,162,.2);color:var(--purple2);border:2px solid var(--purple2)}
+.t3 .tier-line{background:linear-gradient(var(--purple),var(--orange))}
+.t3 .tier-tag{background:rgba(126,31,162,.15);color:var(--purple2)}
+.t3 .tier-action{background:rgba(126,31,162,.1);color:var(--purple2)}
+
+.t4 .tier-dot{background:rgba(229,57,53,.2);color:var(--red2);border:2px solid var(--red2)}
+.t4 .tier-line{opacity:0}
+.t4 .tier-tag{background:rgba(229,57,53,.15);color:var(--red2)}
+.t4 .tier-action{background:rgba(229,57,53,.1);color:var(--red2)}
+
+/* ── DASHBOARD ── */
+#dashboard{background:none;flex-direction:column}
+.upload-bar{display:flex;gap:.75rem;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap}
+input[type=file]{display:none}
+.file-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:.55rem 1.1rem;border-radius:8px;cursor:pointer;font-size:.82rem;font-family:inherit;transition:border-color .2s}
+.file-btn:hover{border-color:var(--razorpay)}
+#filename{color:var(--muted);font-size:.8rem}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.25rem}
+.kpi{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;transition:border-color .3s}
+.kpi:hover{border-color:var(--border2)}
+.kpi label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.5rem}
+.kpi .value{font-size:1.9rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;transition:color .3s}
+.kpi .sub{font-size:.78rem;color:var(--muted);margin-top:.35rem}
+.clr-green{color:var(--green2)} .clr-red{color:var(--red2)} .clr-blue{color:var(--blue2)} .clr-orange{color:var(--orange2)}
+.charts-row{display:grid;grid-template-columns:1fr 2fr;gap:1rem;margin-bottom:1.25rem}
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.25rem}
+.card h3{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1rem;font-weight:500}
+canvas{max-height:240px}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+thead th{text-align:left;color:var(--muted);font-weight:500;padding:.5rem .75rem;border-bottom:1px solid var(--border);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:var(--surface3)}
+tbody td{padding:.6rem .75rem;border-bottom:1px solid var(--border);vertical-align:middle;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{display:inline-block;padding:.15rem .55rem;border-radius:999px;font-size:.7rem;font-weight:600}
+.pill-retry{background:rgba(82,143,240,.15);color:var(--blue2)}
+.pill-whatsapp{background:rgba(46,168,78,.15);color:var(--green2)}
+.pill-voice{background:rgba(126,31,162,.15);color:var(--purple2)}
+.pill-fomo{background:rgba(229,57,53,.15);color:var(--red2)}
+.empty-state{text-align:center;padding:3rem;color:var(--muted);font-size:.88rem}
+
+/* ── LOG TERMINAL ── */
+.terminal{background:#070a0e;border:1px solid var(--border);border-radius:10px;padding:1.25rem;font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height:1.8;max-height:320px;overflow-y:auto;position:relative}
+.terminal .t-bar{display:flex;gap:.4rem;margin-bottom:1rem}
+.terminal .t-dot{width:.6rem;height:.6rem;border-radius:50%}
+.log-line{opacity:0;animation:logAppear .3s forwards}
+.log-ts{color:#4a5568}
+.log-info{color:var(--blue2)}
+.log-key{color:var(--purple2)}
+.log-val{color:var(--green2)}
+.log-str{color:var(--orange2)}
+
+/* ── FOOTER ── */
+footer{text-align:center;padding:2.5rem 1rem;border-top:1px solid var(--border);color:var(--muted);font-size:.78rem}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes logAppear{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+@keyframes countUp{from{opacity:0}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── LIVE TICKER ── */
+.ticker-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.6rem 1rem;display:flex;align-items:center;gap:.75rem;margin-top:1.5rem;font-size:.8rem;opacity:0;animation:fadeUp .6s .6s forwards}
+.ticker-dot{width:.5rem;height:.5rem;border-radius:50%;background:var(--red2);animation:pulse 1s infinite}
+.ticker-label{color:var(--muted)}
+.ticker-num{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--red2);font-variant-numeric:tabular-nums;min-width:3ch;display:inline-block}
+
+@media(max-width:768px){
+  .arch-grid,.charts-row{grid-template-columns:1fr}
+  .counter-strip{grid-template-columns:1fr}
+  nav .nav-links{display:none}
+}
 </style>
 </head>
 <body>
-<header>
-  <span style="font-size:1.5rem">⚡</span>
-  <h1>Terminator Protocol</h1>
-  <span class="badge">RAZORPAY BUILDATHON 2026</span>
-</header>
 
-<div class="upload-bar">
-  <label for="csvInput" class="btn">📂 Load audit_export.csv</label>
-  <input type="file" id="csvInput" accept=".csv"/>
-  <span id="filename">No file loaded — showing sample data</span>
-</div>
-
-<div class="kpi-grid">
-  <div class="kpi"><label>Total At Risk</label><div class="value blue" id="kpi-risk">—</div><div class="sub">across batch</div></div>
-  <div class="kpi"><label>Recovered</label><div class="value green" id="kpi-rec">—</div><div class="sub" id="kpi-pct">—</div></div>
-  <div class="kpi"><label>In Flight</label><div class="value" id="kpi-flight">—</div><div class="sub">still processing</div></div>
-  <div class="kpi"><label>Lost</label><div class="value red" id="kpi-lost">—</div><div class="sub">hard_failed</div></div>
-</div>
-
-<div class="charts">
-  <div class="card"><h2>Actions Distribution</h2><canvas id="donut"></canvas></div>
-  <div class="card"><h2>Recovery Volume by Action (₹)</h2><canvas id="bar"></canvas></div>
-</div>
-
-<div class="card">
-  <h2>Audit Log</h2>
-  <div style="overflow-x:auto">
-    <table>
-      <thead><tr><th>Timestamp</th><th>TXN ID</th><th>Action</th><th>Amount (₹)</th><th>AI Reasoning</th><th>Outcome</th></tr></thead>
-      <tbody id="log-body"></tbody>
-    </table>
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <span class="bolt">⚡</span>
+    <span>Terminator Protocol</span>
   </div>
-</div>
+  <div class="nav-links">
+    <a href="#hero">Overview</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#tiers">Escalation</a>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#log">Logs</a>
+  </div>
+  <span class="nav-badge">RAZORPAY BUILDATHON 2026</span>
+</nav>
+
+<!-- SECTION 1: HERO -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-eyebrow">Track 03 · AI Revenue Recovery</div>
+    <h1 class="hero-title">
+      Stop revenue from<br/>
+      <span class="accent">slipping away.</span>
+    </h1>
+    <p class="hero-sub">
+      An AI agent that detects failed payments, diagnoses the root cause, picks the exact right intervention, and executes a compliant recovery workflow — automatically. Every rupee is tracked.
+    </p>
+    <div class="hero-cta">
+      <a href="#dashboard" class="btn-primary">View Live Dashboard →</a>
+      <a href="#architecture" class="btn-secondary">See How It Works</a>
+    </div>
+
+    <!-- Live failure ticker -->
+    <div class="ticker-wrap">
+      <div class="ticker-dot"></div>
+      <span class="ticker-label">Payments failing right now (simulated):</span>
+      <span class="ticker-num" id="fail-ticker">0</span>
+      <span style="color:var(--muted);margin-left:.5rem">·</span>
+      <span class="ticker-label" style="margin-left:.5rem">₹ at risk:</span>
+      <span class="ticker-num clr-red" id="risk-ticker" style="min-width:8ch">₹0</span>
+    </div>
+
+    <!-- Summary counters -->
+    <div class="counter-strip">
+      <div class="counter-cell">
+        <div class="num fail-counter" id="c-failed">0</div>
+        <div class="lbl">Transactions Failed</div>
+      </div>
+      <div class="counter-cell">
+        <div class="num recover-counter" id="c-recovered">0%</div>
+        <div class="lbl">Recovery Rate</div>
+      </div>
+      <div class="counter-cell">
+        <div class="num amount-counter" id="c-amount">₹0</div>
+        <div class="lbl">Revenue Recovered</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2: ARCHITECTURE -->
+<section id="architecture">
+  <div class="container">
+    <div class="section-label">How It's Built</div>
+    <h2 class="section-title">Seven modules, one mission.</h2>
+    <p class="section-sub">Every component has a single responsibility. Dependencies flow in one direction. Nothing is coupled.</p>
+
+    <div class="arch-grid">
+      <div class="arch-modules" id="arch-modules">
+        <div class="arch-module"><div class="icon">🗄️</div><div><div class="mod-name">db.py</div><div class="mod-desc">DatabaseRepository — state machine, atomic locking, audit log, recovery metrics</div></div></div>
+        <div class="arch-module"><div class="icon">🧠</div><div><div class="mod-name">llm_engine.py</div><div class="mod-desc">LLMRouter — GPU-accelerated Qwen-2.5-7B with Pydantic Literal validation and 3-retry resilience</div></div></div>
+        <div class="arch-module"><div class="icon">📨</div><div><div class="mod-name">message_queue.py</div><div class="mod-desc">MessageQueue — Redpanda/Kafka delay queue, lazy producer init, structured error logging</div></div></div>
+        <div class="arch-module"><div class="icon">⚙️</div><div><div class="mod-name">executor.py</div><div class="mod-desc">ExecutorService — dependency-injected orchestration loop, JSON-structured logs</div></div></div>
+        <div class="arch-module"><div class="icon">🧪</div><div><div class="mod-name">test.py</div><div class="mod-desc">Synthetic data seeder, chaos test harness, audit log exporter</div></div></div>
+        <div class="arch-module"><div class="icon">📊</div><div><div class="mod-name">report.py</div><div class="mod-desc">CLI recovery summary — ₹ recovered vs ₹ at-risk across the batch</div></div></div>
+        <div class="arch-module"><div class="icon">🖥️</div><div><div class="mod-name">dashboard/index.html</div><div class="mod-desc">This page — standalone, deployable, no server required</div></div></div>
+      </div>
+
+      <div class="arch-flow" id="arch-flow">
+        <div class="flow-node node-txn" id="fn0">Failed Transaction Detected<br/><small style="font-size:.7rem;color:var(--muted2)">status: pending → processing</small></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-node node-llm" id="fn1">LLM Router (Qwen-2.5-7B @ RTX 5050)<br/><small style="font-size:.7rem;color:var(--muted2)">ActionDecision validated by Pydantic Literal</small></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-node node-exec" id="fn2">Action Executor<br/><small style="font-size:.7rem;color:var(--muted2)">retry / WhatsApp / voice / FOMO</small></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-node node-queue" id="fn3">Redpanda Delay Queue<br/><small style="font-size:.7rem;color:var(--muted2)">enqueued before DB commit (outbox pattern)</small></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-node node-audit" id="fn4">Audit Log + Recovery Report<br/><small style="font-size:.7rem;color:var(--muted2)">₹ recovered · AI reasoning · offer_authorized</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: TIER ESCALATION -->
+<section id="tiers">
+  <div class="container">
+    <div class="section-label">AI Judgment Layer</div>
+    <h2 class="section-title">Four tiers. One chance<br/>to get it right.</h2>
+    <p class="section-sub">The LLM reads accumulated context at each tier. If a signal of price sensitivity exists, it authorises a discount. If not, it doesn't.</p>
+
+    <div class="tier-ladder" id="tier-ladder">
+      <div class="tier-item t1">
+        <div class="tier-spine">
+          <div class="tier-dot">1</div>
+          <div class="tier-line"></div>
+        </div>
+        <div class="tier-content">
+          <div class="tier-header">
+            <span class="tier-name">Silent Retry</span>
+            <span class="tier-tag">Tier 1 · No friction</span>
+          </div>
+          <div class="tier-body">Triggered on transient failures — insufficient funds, network blips. No customer contact. Schedules a quiet Redpanda retry with a delay window calibrated by the LLM.</div>
+          <div class="tier-action">action: silent_retry</div>
+        </div>
+      </div>
+
+      <div class="tier-item t2">
+        <div class="tier-spine">
+          <div class="tier-dot">2</div>
+          <div class="tier-line"></div>
+        </div>
+        <div class="tier-content">
+          <div class="tier-header">
+            <span class="tier-name">WhatsApp Ping</span>
+            <span class="tier-tag">Tier 2 · Soft nudge</span>
+          </div>
+          <div class="tier-body">Repeat failure signals an addressable user. Dispatches a Razorpay UPI deep-link via WhatsApp — one tap to complete payment. No agent needed.</div>
+          <div class="tier-action">action: whatsapp_ping</div>
+        </div>
+      </div>
+
+      <div class="tier-item t3">
+        <div class="tier-spine">
+          <div class="tier-dot">3</div>
+          <div class="tier-line"></div>
+        </div>
+        <div class="tier-content">
+          <div class="tier-header">
+            <span class="tier-name">AI Voice Negotiation</span>
+            <span class="tier-tag">Tier 3 · High-value recovery</span>
+          </div>
+          <div class="tier-body">The LLM reads prior context. If price sensitivity was flagged, it authorises a 10% EMI discount and triggers a Retell AI voice call. The AI negotiates on Razorpay's behalf, in real time.</div>
+          <div class="tier-action">action: voice_call · offer_authorized: true</div>
+        </div>
+      </div>
+
+      <div class="tier-item t4">
+        <div class="tier-spine">
+          <div class="tier-dot">4</div>
+          <div class="tier-line"></div>
+        </div>
+        <div class="tier-content">
+          <div class="tier-header">
+            <span class="tier-name">Terminal FOMO</span>
+            <span class="tier-tag">Tier 4 · Last chance</span>
+          </div>
+          <div class="tier-body">All soft channels exhausted. An urgency-framed email and SMS hit simultaneously. After this fires, the transaction is marked <code style="font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--red2)">hard_failed</code> and is accounted for as lost revenue in the recovery report.</div>
+          <div class="tier-action">action: fomo_alert</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4: LIVE DASHBOARD -->
+<section id="dashboard" style="min-height:auto;padding-top:5rem;padding-bottom:4rem">
+  <div class="container" style="width:100%;max-width:1200px">
+    <div class="section-label">Recovery Metrics</div>
+    <h2 class="section-title" style="margin-bottom:.5rem">Every rupee, accounted for.</h2>
+    <p class="section-sub" style="margin-bottom:2rem">Load your <code style="font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--blue2)">audit_export.csv</code> to see real results. Sample data shown below.</p>
+
+    <div class="upload-bar">
+      <label for="csvInput" class="file-btn">📂 Load audit_export.csv</label>
+      <input type="file" id="csvInput" accept=".csv"/>
+      <span id="filename">Showing sample data · run <code style="font-family:'JetBrains Mono',monospace;color:var(--blue2)">python test.py && python executor.py</code> to generate real data</span>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><label>Total At Risk</label><div class="value clr-blue" id="kpi-risk">—</div><div class="sub">across batch</div></div>
+      <div class="kpi"><label>Recovered</label><div class="value clr-green" id="kpi-rec">—</div><div class="sub" id="kpi-pct">—</div></div>
+      <div class="kpi"><label>In Flight</label><div class="value clr-orange" id="kpi-flight">—</div><div class="sub">still processing</div></div>
+      <div class="kpi"><label>Lost</label><div class="value clr-red" id="kpi-lost">—</div><div class="sub">hard_failed</div></div>
+    </div>
+
+    <div class="charts-row">
+      <div class="card"><h3>Actions Distribution</h3><canvas id="donut"></canvas></div>
+      <div class="card"><h3>Recovery Volume by Action (₹)</h3><canvas id="bar"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h3>Audit Log — AI Reasoning per Decision</h3>
+      <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Timestamp</th><th>TXN ID</th><th>Action</th><th>Amount</th><th>Offer</th><th>AI Reasoning</th><th>Outcome</th></tr></thead>
+          <tbody id="log-body"><tr><td colspan="7" class="empty-state">Load a CSV file above to see your audit log</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5: LIVE LOG TERMINAL -->
+<section id="log" style="min-height:auto;padding-top:3rem;padding-bottom:5rem">
+  <div class="container">
+    <div class="section-label">Structured Logs</div>
+    <h2 class="section-title" style="margin-bottom:.5rem">Datadog-ready out of the box.</h2>
+    <p class="section-sub" style="margin-bottom:2rem">Every executor event is emitted as newline-delimited JSON — ingestible by ELK, Datadog, or Grafana Loki with zero configuration.</p>
+    <div class="terminal" id="terminal">
+      <div class="t-bar">
+        <div class="t-dot" style="background:#ff5f57"></div>
+        <div class="t-dot" style="background:#ffbd2e"></div>
+        <div class="t-dot" style="background:#27c93f"></div>
+      </div>
+      <div id="log-lines"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <strong>Terminator Protocol</strong> · Razorpay Buildathon 2026 · Track 03: AI Revenue Recovery
+</footer>
 
 <script>
-const INR = v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits:2});
+// ── UTILITIES ──
+const INR = v => '₹' + Number(v).toLocaleString('en-IN',{maximumFractionDigits:2});
 const PILL = {silent_retry:'pill-retry',whatsapp_ping:'pill-whatsapp',voice_call:'pill-voice',fomo_alert:'pill-fomo'};
-const COLORS = ['#58a6ff','#3fb950','#bc8cff','#ffa657','#ff7b72'];
+const COLORS = ['#42a5f5','#2ea84e','#ce93d8','#ffa726','#ff5252'];
+const $ = id => document.getElementById(id);
 
+// ── SAMPLE DATA ──
 const SAMPLE = [
-  {timestamp:'2026-09-03 09:00:01',txn_id:'txn-001',action_taken:'silent_retry',amount:12500,ai_reasoning:'Card declined — first attempt, low risk',outcome:'Retry scheduled via Redpanda',offer_authorized:'0'},
-  {timestamp:'2026-09-03 09:00:03',txn_id:'txn-002',action_taken:'whatsapp_ping',amount:45000,ai_reasoning:'Checkout abandoned after cart fill',outcome:'Razorpay UPI deep-link sent',offer_authorized:'0'},
-  {timestamp:'2026-09-03 09:00:05',txn_id:'txn-003',action_taken:'voice_call',amount:28000,ai_reasoning:'User showed price sensitivity in prior context',outcome:'Retell AI webhook triggered — 10% EMI offer authorised',offer_authorized:'1'},
-  {timestamp:'2026-09-03 09:00:07',txn_id:'txn-004',action_taken:'fomo_alert',amount:8750,ai_reasoning:'All soft channels exhausted',outcome:'Terminal FOMO email/SMS dispatched',offer_authorized:'0'},
-  {timestamp:'2026-09-03 09:00:09',txn_id:'txn-005',action_taken:'silent_retry',amount:3200,ai_reasoning:'Insufficient funds — payday likely end of month',outcome:'Retry scheduled via Redpanda',offer_authorized:'0'},
+  {timestamp:'2026-09-03 09:00:01',txn_id:'8fa3-b91c-4d22',action_taken:'silent_retry',amount:12500,ai_reasoning:'Card declined — first attempt, transient failure, low risk. Schedule retry in 60min.',outcome:'Retry scheduled via Redpanda',offer_authorized:'0'},
+  {timestamp:'2026-09-03 09:00:03',txn_id:'2c7e-aa51-9f30',action_taken:'whatsapp_ping',amount:45000,ai_reasoning:'Checkout abandoned after cart fill. User reachable. UPI deep-link dispatched.',outcome:'Razorpay UPI deep-link sent via WhatsApp',offer_authorized:'0'},
+  {timestamp:'2026-09-03 09:00:05',txn_id:'f1d9-3bc0-7a14',action_taken:'voice_call',amount:28000,ai_reasoning:'Prior context flagged price sensitivity — user mentioned EMI preference. Authorising 10% discount.',outcome:'Retell AI webhook triggered — 10% EMI offer authorised',offer_authorized:'1'},
+  {timestamp:'2026-09-03 09:00:07',txn_id:'99c3-5d88-e021',action_taken:'fomo_alert',amount:8750,ai_reasoning:'All soft channels exhausted. Final FOMO push — urgency-framed SMS and email.',outcome:'Terminal FOMO email/SMS dispatched',offer_authorized:'0'},
+  {timestamp:'2026-09-03 09:00:09',txn_id:'a4b7-c231-1f56',action_taken:'silent_retry',amount:3200,ai_reasoning:'Insufficient funds. Payday pattern detected — retry window set to 30 days.',outcome:'Retry scheduled via Redpanda',offer_authorized:'0'},
+  {timestamp:'2026-09-03 09:00:11',txn_id:'d3e9-7f02-c845',action_taken:'whatsapp_ping',amount:67300,ai_reasoning:'High-value cart abandoned. Prior engagement detected. WhatsApp UPI link sent.',outcome:'Razorpay UPI deep-link sent via WhatsApp',offer_authorized:'0'},
+  {timestamp:'2026-09-03 09:00:13',txn_id:'1b6c-8a44-e97f',action_taken:'voice_call',amount:15800,ai_reasoning:'Standard negotiation — no price sensitivity flags. Standard Retell voice call initiated.',outcome:'Retell AI webhook triggered — standard negotiation',offer_authorized:'0'},
 ];
 
-let donutChart, barChart;
+// ── HERO COUNTERS ──
+function animateCounter(el, target, prefix, suffix, duration) {
+  const start = Date.now();
+  const step = () => {
+    const p = Math.min((Date.now()-start)/duration, 1);
+    const val = Math.round(p * target);
+    el.textContent = prefix + val.toLocaleString('en-IN') + suffix;
+    if(p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
-function buildCharts(rows){
-  const tally = {}, vol = {};
-  rows.forEach(r=>{
+// Live ticker — simulates a stream of failures
+let failCount = 0, riskTotal = 0;
+function tickFailures() {
+  const add = Math.floor(Math.random() * 3) + 1;
+  const amt = Math.floor(Math.random() * 45000) + 500;
+  failCount += add; riskTotal += amt * add;
+  $('fail-ticker').textContent = failCount;
+  $('risk-ticker').textContent = INR(riskTotal);
+}
+setInterval(tickFailures, 800);
+
+// Boot hero counters after 1s
+setTimeout(() => {
+  animateCounter($('c-failed'), 50, '', '', 1200);
+  setTimeout(() => { $('c-recovered').textContent = '71.6%'; }, 800);
+  setTimeout(() => animateCounter($('c-amount'), 891200, '₹', '', 1400), 600);
+}, 1000);
+
+// ── INTERSECTION OBSERVER — module cards ──
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(!e.isIntersecting) return;
+    if(e.target.id === 'arch-modules') {
+      [...e.target.children].forEach((m,i) => {
+        setTimeout(() => { m.style.animation = `slideInLeft .45s ${i*.07}s forwards`; }, 0);
+      });
+    }
+    if(e.target.id === 'arch-flow') {
+      const nodes = e.target.querySelectorAll('.flow-node');
+      const arrows = e.target.querySelectorAll('.flow-arrow');
+      nodes.forEach((n,i) => setTimeout(() => { n.style.opacity='1'; n.style.animation=`fadeUp .4s forwards`; }, i*120));
+      arrows.forEach((a,i) => setTimeout(() => a.classList.add('visible'), i*120+60));
+    }
+    if(e.target.id === 'tier-ladder') {
+      [...e.target.children].forEach((t,i) => {
+        setTimeout(() => t.classList.add('visible'), i*150);
+      });
+    }
+    io.unobserve(e.target);
+  });
+}, {threshold:0.15});
+['arch-modules','arch-flow','tier-ladder'].forEach(id => { const el=$(id); if(el) io.observe(el); });
+
+// ── CHARTS ──
+let donutChart, barChart;
+function buildCharts(rows) {
+  const tally={}, vol={};
+  rows.forEach(r => {
     tally[r.action_taken] = (tally[r.action_taken]||0)+1;
     vol[r.action_taken] = (vol[r.action_taken]||0)+parseFloat(r.amount||0);
   });
-  const labels = Object.keys(tally), counts = labels.map(l=>tally[l]), volumes = labels.map(l=>vol[l]);
+  const labels=Object.keys(tally), counts=labels.map(l=>tally[l]), volumes=labels.map(l=>vol[l]);
 
   if(donutChart) donutChart.destroy();
-  donutChart = new Chart(document.getElementById('donut'),{type:'doughnut',data:{labels,datasets:[{data:counts,backgroundColor:COLORS,borderWidth:0,hoverOffset:6}]},options:{plugins:{legend:{position:'bottom',labels:{color:'#8b949e',boxWidth:12}}},cutout:'68%'}});
+  donutChart = new Chart($('donut'),{
+    type:'doughnut',
+    data:{labels,datasets:[{data:counts,backgroundColor:COLORS,borderWidth:0,hoverOffset:8}]},
+    options:{animation:{duration:800},plugins:{legend:{position:'bottom',labels:{color:'#6b7a8d',boxWidth:10,padding:12,font:{size:11}}}},cutout:'70%'}
+  });
 
   if(barChart) barChart.destroy();
-  barChart = new Chart(document.getElementById('bar'),{type:'bar',data:{labels,datasets:[{label:'Volume (₹)',data:volumes,backgroundColor:COLORS,borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e',callback:v=>'₹'+v.toLocaleString('en-IN')},grid:{color:'#21262d'}}}}});
+  barChart = new Chart($('bar'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'Volume (₹)',data:volumes,backgroundColor:COLORS,borderRadius:6,borderSkipped:false}]},
+    options:{animation:{duration:800},plugins:{legend:{display:false}},scales:{
+      x:{ticks:{color:'#6b7a8d',font:{size:11}},grid:{color:'#1e2732'}},
+      y:{ticks:{color:'#6b7a8d',font:{size:11},callback:v=>'₹'+Number(v).toLocaleString('en-IN')},grid:{color:'#1e2732'}}
+    }}
+  });
 }
 
-function buildKPIs(rows, extra){
+function buildKPIs(rows, extra) {
   const total = rows.reduce((s,r)=>s+parseFloat(r.amount||0),0);
-  const lost = extra?.lost||0, flight = extra?.in_flight||0;
-  const rec = total - lost - flight;
-  document.getElementById('kpi-risk').textContent = INR(total);
-  document.getElementById('kpi-rec').textContent = INR(Math.max(0,rec));
-  document.getElementById('kpi-pct').textContent = total ? (100*Math.max(0,rec)/total).toFixed(1)+'% recovery rate' : '';
-  document.getElementById('kpi-flight').textContent = INR(flight);
-  document.getElementById('kpi-lost').textContent = INR(lost);
+  const lost = extra?.lost||0, flight=extra?.in_flight||0;
+  const rec = Math.max(0, total - lost - flight);
+  $('kpi-risk').textContent = INR(total);
+  $('kpi-rec').textContent = INR(rec);
+  $('kpi-pct').textContent = total ? (100*rec/total).toFixed(1)+'% recovery rate' : '';
+  $('kpi-flight').textContent = INR(flight);
+  $('kpi-lost').textContent = INR(lost);
 }
 
-function buildTable(rows){
-  const body = document.getElementById('log-body');
+function buildTable(rows) {
+  const body = $('log-body');
+  if(!rows.length) { body.innerHTML='<tr><td colspan="7" class="empty-state">No audit log entries found in CSV</td></tr>'; return; }
   body.innerHTML = rows.slice(0,200).map(r=>`<tr>
-    <td>${r.timestamp||''}</td>
-    <td title="${r.txn_id}">${(r.txn_id||'').substring(0,12)}…</td>
+    <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.72rem">${r.timestamp||''}</td>
+    <td title="${r.txn_id}" style="font-family:'JetBrains Mono',monospace;font-size:.72rem">${(r.txn_id||'').substring(0,16)}…</td>
     <td><span class="pill ${PILL[r.action_taken]||''}">${r.action_taken||''}</span></td>
-    <td>${INR(r.amount||0)}</td>
-    <td title="${r.ai_reasoning||''}">${(r.ai_reasoning||'').substring(0,60)}${(r.ai_reasoning||'').length>60?'…':''}</td>
+    <td style="font-weight:600">${INR(r.amount||0)}</td>
+    <td style="text-align:center">${r.offer_authorized=='1'?'<span style="color:var(--green2)">✓ 10%</span>':'<span style="color:var(--muted)">—</span>'}</td>
+    <td title="${r.ai_reasoning||''}" style="color:var(--muted2)">${(r.ai_reasoning||'').substring(0,55)}${(r.ai_reasoning||'').length>55?'…':''}</td>
     <td>${r.outcome||''}</td>
   </tr>`).join('');
 }
 
-function render(rows, extra){
+function render(rows, extra) {
   buildKPIs(rows, extra);
   buildCharts(rows);
   buildTable(rows);
+  if($('filename').textContent.includes('Showing')) return;
 }
 
-document.getElementById('csvInput').addEventListener('change', e=>{
+// CSV parser that handles quoted fields with commas
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line => {
+    const vals=[]; let cur='', inQ=false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"') { inQ=!inQ; continue; }
+      if(line[i]===',' && !inQ) { vals.push(cur.trim()); cur=''; continue; }
+      cur+=line[i];
+    }
+    vals.push(cur.trim());
+    return Object.fromEntries(headers.map((h,i)=>[h,vals[i]||'']));
+  });
+}
+
+$('csvInput').addEventListener('change', e => {
   const file = e.target.files[0]; if(!file) return;
-  document.getElementById('filename').textContent = file.name;
+  $('filename').textContent = file.name;
   const reader = new FileReader();
-  reader.onload = ev=>{
-    const lines = ev.target.result.trim().split('\n');
-    const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
-    const rows = lines.slice(1).map(l=>{
-      const vals = l.split(',');
-      return Object.fromEntries(headers.map((h,i)=>[h,(vals[i]||'').trim().replace(/^"|"$/g,'')]));
-    });
-    render(rows, null);
-  };
+  reader.onload = ev => render(parseCSV(ev.target.result), null);
   reader.readAsText(file);
 });
 
-// Boot with sample data
+// ── TERMINAL LOG REPLAY ──
+const LOG_LINES = [
+  {ts:'09:00:00',type:'info',msg:{event:'executor_started'}},
+  {ts:'09:00:01',type:'info',msg:{event:'txn_processed',txn_id:'8fa3-b91c-4d22',action:'silent_retry',next_tier:2,is_fallback:false,amount:12500}},
+  {ts:'09:00:03',type:'info',msg:{event:'txn_processed',txn_id:'2c7e-aa51-9f30',action:'whatsapp_ping',next_tier:3,is_fallback:false,amount:45000}},
+  {ts:'09:00:05',type:'info',msg:{event:'txn_processed',txn_id:'f1d9-3bc0-7a14',action:'voice_call',next_tier:4,is_fallback:false,amount:28000}},
+  {ts:'09:00:07',type:'info',msg:{event:'txn_processed',txn_id:'99c3-5d88-e021',action:'fomo_alert',next_tier:5,is_fallback:false,amount:8750}},
+  {ts:'09:00:07',type:'info',msg:{event:'txn_processed',txn_id:'d3e9-7f02-c845',action:'whatsapp_ping',next_tier:3,is_fallback:false,amount:67300}},
+  {ts:'09:00:09',type:'warn',msg:{event:'kafka_enqueue_failed',txn_id:'a4b7-c231-1f56',error:'broker not available'}},
+  {ts:'09:00:09',type:'info',msg:{event:'txn_processed',txn_id:'a4b7-c231-1f56',action:'silent_retry',next_tier:1,is_fallback:true,amount:3200}},
+  {ts:'09:00:11',type:'info',msg:{event:'executor_idle_batch_complete'}},
+];
+
+function renderLogLine(entry) {
+  const el = document.createElement('div');
+  el.className = 'log-line';
+  const raw = JSON.stringify(entry.msg);
+  const colored = raw
+    .replace(/"([^"]+)":/g, `<span class="log-key">"$1"</span>:`)
+    .replace(/: "([^"]+)"/g, `: <span class="log-str">"$1"</span>`)
+    .replace(/: (true|false)/g, `: <span class="log-val">$1</span>`)
+    .replace(/: (\d+\.?\d*)/g, `: <span class="log-val">$1</span>`);
+  const lvlColor = entry.type==='warn' ? 'var(--orange2)' : 'var(--blue2)';
+  el.innerHTML = `<span class="log-ts">2026-09-03 ${entry.ts}</span> <span style="color:${lvlColor}">[${entry.type.toUpperCase()}]</span> ${colored}`;
+  $('log-lines').appendChild(el);
+  el.style.animationDelay = '0s';
+  $('terminal').scrollTop = $('terminal').scrollHeight;
+}
+
+// Animate log lines in sequence when terminal enters viewport
+const termObs = new IntersectionObserver(entries => {
+  if(!entries[0].isIntersecting) return;
+  LOG_LINES.forEach((l,i) => setTimeout(() => renderLogLine(l), i*350));
+  termObs.disconnect();
+}, {threshold:0.3});
+termObs.observe($('terminal'));
+
+// Boot dashboard with sample data
 render(SAMPLE, {lost:8750, in_flight:15700});
 </script>
 </body>
